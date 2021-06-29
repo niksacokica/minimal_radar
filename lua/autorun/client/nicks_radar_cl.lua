@@ -1,56 +1,10 @@
-local mvars = {}
+include( "nicks_radar_convars.lua" )
+
 local npc_rel = {}
-
-table.insert( mvars, CreateClientConVar( "minimap_x_pos", "200" ) )
-table.insert( mvars, CreateClientConVar( "minimap_y_pos", "200" ) )
-table.insert( mvars, CreateClientConVar( "minimap_scale", "1" ) )
-table.insert( mvars, CreateClientConVar( "minimap_b_r", "33" ) )
-table.insert( mvars, CreateClientConVar( "minimap_b_g", "33" ) )
-table.insert( mvars, CreateClientConVar( "minimap_b_b", "39" ) )
-table.insert( mvars, CreateClientConVar( "minimap_b_a", "242" ) )
-table.insert( mvars, CreateClientConVar( "minimap_l_r", "55" ) )
-table.insert( mvars, CreateClientConVar( "minimap_l_g", "200" ) )
-table.insert( mvars, CreateClientConVar( "minimap_l_b", "255" ) )
-table.insert( mvars, CreateClientConVar( "minimap_l_a", "255" ) )
-table.insert( mvars, CreateClientConVar( "minimap_lp_r", "55" ) )
-table.insert( mvars, CreateClientConVar( "minimap_lp_g", "200" ) )
-table.insert( mvars, CreateClientConVar( "minimap_lp_b", "255" ) )
-table.insert( mvars, CreateClientConVar( "minimap_lp_a", "255" ) )
-table.insert( mvars, CreateClientConVar( "minimap_p_r", "31" ) )
-table.insert( mvars, CreateClientConVar( "minimap_p_g", "135" ) )
-table.insert( mvars, CreateClientConVar( "minimap_p_b", "27" ) )
-table.insert( mvars, CreateClientConVar( "minimap_p_a", "255" ) )
-table.insert( mvars, CreateClientConVar( "minimap_nl_r", "31" ) )
-table.insert( mvars, CreateClientConVar( "minimap_nl_g", "135" ) )
-table.insert( mvars, CreateClientConVar( "minimap_nl_b", "27" ) )
-table.insert( mvars, CreateClientConVar( "minimap_nl_a", "255" ) )
-table.insert( mvars, CreateClientConVar( "minimap_nh_r", "212" ) )
-table.insert( mvars, CreateClientConVar( "minimap_nh_g", "0" ) )
-table.insert( mvars, CreateClientConVar( "minimap_nh_b", "0" ) )
-table.insert( mvars, CreateClientConVar( "minimap_nh_a", "255" ) )
-
-cvars.AddChangeCallback("minimap_x_pos", function(name, old, new)
-    print(name, old, new)
-end)
 
 net.Receive( "minimap_check_npc_status_send", function( len )
 	npc_rel[net.ReadEntity()] = net.ReadBool()
 end)
-
-function draw.Circle( x, y, radius )
-	local cir = {}
-
-	table.insert( cir, { x = x, y = y-1, u = 0.5, v = 0.5 } )
-	for i = 0, 100 do
-		local a = math.rad( ( i / 100 ) * -360 )
-		table.insert( cir, { x = x + math.sin( a ) * radius, y = y + math.cos( a ) * radius, u = math.sin( a ) / 2 + 0.5, v = math.cos( a ) / 2 + 0.5 } )
-	end
-
-	local a = math.rad( 0 )
-	table.insert( cir, { x = x + math.sin( a ) * radius, y = y + math.cos( a ) * radius, u = math.sin( a ) / 2 + 0.5, v = math.cos( a ) / 2 + 0.5 } )
-
-	surface.DrawPoly( cir )
-end
 
 hook.Add( "OnEntityCreated", "NicksMinimapNpcCheck", function( ent )
 	if ent:IsNPC() then
@@ -68,13 +22,24 @@ timer.Create( "NicksMinimapTimer", 60, 0, function()
 	end
 end)
 
+function draw.Circle( x, y, radius )
+	local cir = {}
+
+	table.insert( cir, { x = x, y = y-1, u = 0.5, v = 0.5 } )
+	for i = 0, 100 do
+		local a = math.rad( ( i / 100 ) * -360 )
+		table.insert( cir, { x = x + math.sin( a ) * radius, y = y + math.cos( a ) * radius, u = math.sin( a ) / 2 + 0.5, v = math.cos( a ) / 2 + 0.5 } )
+	end
+
+	local a = math.rad( 0 )
+	table.insert( cir, { x = x + math.sin( a ) * radius, y = y + math.cos( a ) * radius, u = math.sin( a ) / 2 + 0.5, v = math.cos( a ) / 2 + 0.5 } )
+
+	surface.DrawPoly( cir )
+end
+
 hook.Add( "HUDPaint", "NicksMinimapHud", function()
-	local center = Vector( GetConVar( "minimap_x_pos" ):GetFloat(), GetConVar( "minimap_y_pos" ):GetFloat() )
-	local line_clr = Color( GetConVar("minimap_l_r"):GetInt(), GetConVar("minimap_l_g"):GetInt(), GetConVar("minimap_l_b"):GetInt(), GetConVar("minimap_l_a"):GetInt() )
-	local scl = GetConVar("minimap_scale"):GetFloat()
-	
 	--minimap
-	surface.SetDrawColor( GetConVar("minimap_b_r"):GetInt(), GetConVar("minimap_b_g"):GetInt(), GetConVar("minimap_b_b"):GetInt(), GetConVar("minimap_b_a"):GetInt() )
+	surface.SetDrawColor( bck_clr:Unpack() )
 	draw.Circle( center.x, center.y, (ScrW()/ScrH()*80-0.5)*scl )
 	
 	surface.SetDrawColor( line_clr:Unpack() )
@@ -96,27 +61,24 @@ hook.Add( "HUDPaint", "NicksMinimapHud", function()
 	
 	--player/npc positions
 	local Ppos = LocalPlayer():GetPos()
-	local Pang = LocalPlayer():GetAngles()
-	Pang.x = 0
-	Pang.z = 0
-	Pang.y = Pang.y - 90
 	local Spos = Vector( Ppos.x, Ppos.y, Ppos.z-10000 )
 	local Epos = Vector( Ppos.x, Ppos.y, Ppos.z+10000 )
-	Ppos.z = 0
+	
 	local m = Matrix()
 	m:Translate( center )
-	m:Rotate( Pang )
+	m:Rotate( Angle( 0, LocalPlayer():GetAngles().y-90, 0 ) )
 	m:Translate( -center )
+	
 	local dr = {}
-	for k, v in ipairs(ents.FindAlongRay( Spos, Epos, Vector( -1000, -1000, -1000 ), Vector( 1000, 1000, 1000 ) )) do
-		local rPos = ((v:GetPos() - Ppos) * 0.13)*scl
-		local x,y = center.x + rPos.x, center.y - rPos.y
+	for k, v in ipairs( ents.FindAlongRay( Spos, Epos, Vector( -1000, -1000, -1000 ), Vector( 1000, 1000, 1000 ) ) ) do
+		local rPos = ( ( v:GetPos() - Ppos ) * 0.11 ) * scl
+		local x, y = center.x + rPos.x, center.y - rPos.y
 		
 		if v:IsPlayer() and v ~= LocalPlayer() then
-			table.insert( dr, { x = x, y = y, s = (v:BoundingRadius()/7)*scl, c = Color( GetConVar("minimap_p_r"):GetInt(), GetConVar("minimap_p_g"):GetInt(), GetConVar("minimap_p_b"):GetInt(), GetConVar("minimap_p_a"):GetInt() ) })
+			table.insert( dr, { x = x, y = y, s = v:BoundingRadius()/7*scl, c = plys_clr } )
 		elseif v:IsNPC() then
 			if npc_rel[v] ~= nil then
-				table.insert( dr, { x = x, y = y, s = (v:BoundingRadius()/7)*scl, c = ( npc_rel[v] and Color( GetConVar("minimap_nh_r"):GetInt(), GetConVar("minimap_nh_g"):GetInt(), GetConVar("minimap_nh_b"):GetInt(), GetConVar("minimap_nh_a"):GetInt() ) ) or Color( GetConVar("minimap_nl_r"):GetInt(), GetConVar("minimap_nl_g"):GetInt(), GetConVar("minimap_nl_b"):GetInt(), GetConVar("minimap_nl_a"):GetInt() ) })
+				table.insert( dr, { x = x, y = y, s = v:BoundingRadius()/7*scl, c = ( npc_rel[v] and enpc_clr ) or fnpc_clr } )
 			else
 				net.Start( "minimap_check_npc_status_get" )
 					net.WriteEntity( v )
@@ -126,19 +88,18 @@ hook.Add( "HUDPaint", "NicksMinimapHud", function()
 	end
 	
 	cam.PushModelMatrix( m )
-		surface.DrawCircle( center.x, center.y, (ScrW()/ScrH()*80)*scl, line_clr:Unpack() )
-		surface.DrawCircle( center.x, center.y, (ScrW()/ScrH()*60)*scl, line_clr:Unpack() )
-		surface.DrawCircle( center.x, center.y, (ScrW()/ScrH()*40)*scl, line_clr:Unpack() )
-		surface.DrawCircle( center.x, center.y, (ScrW()/ScrH()*20)*scl, line_clr:Unpack() )
+		for i=1, 3 do
+			surface.DrawCircle( center.x, center.y, ScrW()/ScrH()*20*i*scl, line_clr:Unpack() )
+		end
 			
 		for k, v in pairs(dr) do
 			surface.SetDrawColor( v.c:Unpack() )	
-			surface.DrawRect(v.x-(v.s/2), v.y-(v.s)/2, v.s, v.s)
+			surface.DrawRect( v.x-(v.s/2), v.y-(v.s)/2, v.s, v.s )
 		end
 	cam.PopModelMatrix()
 	
 	--player
-	surface.SetDrawColor( GetConVar("minimap_lp_r"):GetInt(), GetConVar("minimap_lp_g"):GetInt(), GetConVar("minimap_lp_b"):GetInt(), GetConVar("minimap_lp_a"):GetInt() )	
+	surface.SetDrawColor( ply_clr:Unpack() )	
 	draw.Circle( center.x, center.y, (ScrW()/ScrH()*3.33)*scl )
 end)
 
@@ -162,65 +123,59 @@ local function options( pnl )
 	bc:SetConVarR( "minimap_b_r" )
 	bc:SetConVarG( "minimap_b_g" )
 	bc:SetConVarB( "minimap_b_b" )
-	bc:SetColor( Color( GetConVar("minimap_b_r"):GetInt(), GetConVar("minimap_b_g"):GetInt(), GetConVar("minimap_b_b"):GetInt(), GetConVar("minimap_b_a"):GetInt() ) )
 	
 	pnl:Help( "Background Color" )
 	pnl:AddItem( bc )
 	
-	local lc = vgui.Create( "DColorMixer" )
-	lc:Dock(FILL)
-	lc:SetConVarA( "minimap_l_a" )
-	lc:SetConVarR( "minimap_l_r" )
-	lc:SetConVarG( "minimap_l_g" )
-	lc:SetConVarB( "minimap_l_b" )
-	lc:SetColor( Color( GetConVar("minimap_l_r"):GetInt(), GetConVar("minimap_l_g"):GetInt(), GetConVar("minimap_l_b"):GetInt(), GetConVar("minimap_l_a"):GetInt() ) )
+	local l = vgui.Create( "DColorMixer" )
+	l:Dock(FILL)
+	l:SetConVarA( "minimap_l_a" )
+	l:SetConVarR( "minimap_l_r" )
+	l:SetConVarG( "minimap_l_g" )
+	l:SetConVarB( "minimap_l_b" )
 	
 	pnl:Help( "Line Color" )
-	pnl:AddItem( lc )
+	pnl:AddItem( l )
 	
-	local pyc = vgui.Create( "DColorMixer" )
-	pyc:Dock(FILL)
-	pyc:SetConVarA( "minimap_lp_a" )
-	pyc:SetConVarR( "minimap_lp_r" )
-	pyc:SetConVarG( "minimap_lp_g" )
-	pyc:SetConVarB( "minimap_lp_b" )
-	pyc:SetColor( Color( GetConVar("minimap_lp_r"):GetInt(), GetConVar("minimap_lp_g"):GetInt(), GetConVar("minimap_lp_b"):GetInt(), GetConVar("minimap_lp_a"):GetInt() ) )
+	local ply = vgui.Create( "DColorMixer" )
+	ply:Dock(FILL)
+	ply:SetConVarA( "minimap_lp_a" )
+	ply:SetConVarR( "minimap_lp_r" )
+	ply:SetConVarG( "minimap_lp_g" )
+	ply:SetConVarB( "minimap_lp_b" )
 	
 	pnl:Help( "Player(you) Color" )
-	pnl:AddItem( pyc )
+	pnl:AddItem( ply )
 	
-	local poc = vgui.Create( "DColorMixer" )
-	poc:Dock(FILL)
-	poc:SetConVarA( "minimap_p_a" )
-	poc:SetConVarR( "minimap_p_r" )
-	poc:SetConVarG( "minimap_p_g" )
-	poc:SetConVarB( "minimap_p_b" )
-	poc:SetColor( Color( GetConVar("minimap_p_r"):GetInt(), GetConVar("minimap_p_g"):GetInt(), GetConVar("minimap_p_b"):GetInt(), GetConVar("minimap_p_a"):GetInt() ) )
+	local plys = vgui.Create( "DColorMixer" )
+	plys:Dock(FILL)
+	plys:SetConVarA( "minimap_p_a" )
+	plys:SetConVarR( "minimap_p_r" )
+	plys:SetConVarG( "minimap_p_g" )
+	plys:SetConVarB( "minimap_p_b" )
 	
 	pnl:Help( "Players(others) Color" )
-	pnl:AddItem( poc )
+	pnl:AddItem( plys )
 	
-	local fnc = vgui.Create( "DColorMixer" )
-	fnc:Dock(FILL)
-	fnc:SetConVarA( "minimap_nl_a" )
-	fnc:SetConVarR( "minimap_nl_r" )
-	fnc:SetConVarG( "minimap_nl_g" )
-	fnc:SetConVarB( "minimap_nl_b" )
-	fnc:SetColor( Color( GetConVar("minimap_nl_r"):GetInt(), GetConVar("minimap_nl_g"):GetInt(), GetConVar("minimap_nl_b"):GetInt(), GetConVar("minimap_nl_a"):GetInt() ) )
+	local fnpc = vgui.Create( "DColorMixer" )
+	fnpc:Dock(FILL)
+	fnpc:SetConVarA( "minimap_nl_a" )
+	fnpc:SetConVarR( "minimap_nl_r" )
+	fnpc:SetConVarG( "minimap_nl_g" )
+	fnpc:SetConVarB( "minimap_nl_b" )
 	
 	pnl:Help( "Friendly NPC Color" )
-	pnl:AddItem( fnc )
+	pnl:AddItem( fnpc )
 	
-	local fec = vgui.Create( "DColorMixer" )
-	fec:Dock(FILL)
-	fec:SetConVarA( "minimap_nh_a" )
-	fec:SetConVarR( "minimap_nh_r" )
-	fec:SetConVarG( "minimap_nh_g" )
-	fec:SetConVarB( "minimap_nh_b" )
-	fec:SetColor( Color( GetConVar("minimap_nh_r"):GetInt(), GetConVar("minimap_nh_g"):GetInt(), GetConVar("minimap_nh_b"):GetInt(), GetConVar("minimap_nh_a"):GetInt() ) )
+	local fepc = vgui.Create( "DColorMixer" )
+	fepc:Dock(FILL)
+	fepc:SetConVarA( "minimap_nh_a" )
+	fepc:SetConVarR( "minimap_nh_r" )
+	fepc:SetConVarG( "minimap_nh_g" )
+	fepc:SetConVarB( "minimap_nh_b" )
 	
 	pnl:Help( "Enemy NPC Color" )
-	pnl:AddItem( fec )
+	pnl:AddItem( fepc )
 end
 
 hook.Add( "PopulateToolMenu", "NicksMinimapOptions", function()
